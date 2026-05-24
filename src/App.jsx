@@ -62,43 +62,44 @@ const addRanking = (name, score, mode) => {
     ranking.push({ name, score, mode });
   }
 
-  // スコアの降順にソート（制限なしで全記録を一度保持し、表示側で制御または多めに残す）
   ranking.sort((a, b) => b.score - a.score);
-  // 正確なパーセンテージと順位を出すため、上限は100件程度に拡張
   saveRanking(ranking.slice(0, 100));
 };
 
 /* =========================
-STYLE & THEME
+STYLE & THEME (FIXED UI)
 ========================= */
 const bg = {
   minHeight: "100vh",
   background: "radial-gradient(circle at top, #121225, #050508)",
   color: "#fff",
   textAlign: "center",
-  paddingTop: 20,
+  paddingTop: 40, // 上部に少し余裕を持たせました
   paddingBottom: 40,
-  fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   overflowX: "hidden"
 };
 const title = {
-  fontSize: 44,
-  letterSpacing: 6,
+  fontSize: 42,
+  letterSpacing: "8px", // 詰まり気味だった文字間隔を調整
   fontWeight: 900,
   background: "linear-gradient(45deg, #00e5ff, #0066ff)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
-  textShadow: "0 0 20px rgba(0,229,255,0.4)",
-  margin: "10px 0 20px 0"
+  // グラデーション文字が削れないようにpaddingを追加
+  padding: "5px 10px", 
+  textShadow: "0 0 20px rgba(0,229,255,0.3)",
+  margin: "10px 0 30px 0",
+  display: "inline-block"
 };
 const card = {
-  background: "linear-gradient(135deg, rgba(25,25,40,0.85), rgba(15,15,25,0.95))",
-  border: "1px solid rgba(0, 229, 255, 0.15)",
+  background: "linear-gradient(135deg, rgba(30,30,50,0.9), rgba(15,15,25,0.98))",
+  border: "1px solid rgba(0, 229, 255, 0.2)",
   borderRadius: 22,
-  padding: 20,
+  padding: "30px 24px", // 内側の余白を少し広げてゆったりと
   width: 340,
   margin: "15px auto",
-  boxShadow: "0 15px 35px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1)"
+  boxShadow: "0 20px 40px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.1)"
 };
 const grid = {
   display: "grid",
@@ -122,25 +123,25 @@ const menuBtn = {
   borderRadius: 16,
   fontWeight: 800,
   fontSize: 16,
-  border: "1px solid rgba(0,229,255,0.3)",
+  border: "1px solid rgba(0,229,255,0.4)",
   background: "linear-gradient(90deg, #0052d4, #4364f7, #6fb1fc)",
   color: "#fff",
   cursor: "pointer",
   boxShadow: "0 4px 15px rgba(67, 100, 247, 0.4)",
-  letterSpacing: 1
+  letterSpacing: "2px" // ボタン内の文字間隔も微調整
 };
 const inputStyle = {
   width: "90%",
   padding: 14,
   borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.1)",
-  marginTop: 12,
+  marginTop: 14,
   backgroundColor: "rgba(0,0,0,0.4)",
   color: "#00e5ff",
   fontSize: 16,
   textAlign: "center",
   outline: "none",
-  boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)"
+  boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)",
+  transition: "all 0.2s ease"
 };
 
 /* =========================
@@ -169,31 +170,11 @@ const getRank = (score) => {
 };
 
 /* =========================
-GENERATE
-========================= */
-function generateNumbers(q) {
-  const { min, max } = getRange(q);
-  const used = new Set();
-  const primes = [...primePool].filter((p) => p >= min && p <= max);
-  const arr = [{ value: primes[(Math.random() * primes.length) | 0], id: "p0" }];
-  used.add(arr[0].value);
-  while (arr.length < 9) {
-    const n = ((Math.random() * (max - min + 1)) | 0) + min;
-    if (isPrime(n)) continue;
-    if (used.has(n)) continue;
-    used.add(n);
-    arr.push({ value: n, id: n });
-  }
-  return shuffle(arr);
-}
-
-/* =========================
 RANKING
 ========================= */
 function Ranking({ back, currentUser }) {
   const ranking = getRanking();
 
-  // 現在のユーザーの各モードでの最高位を計算
   const getMyStats = (mode) => {
     const modeList = ranking.filter(r => r.mode === mode);
     const totalCount = modeList.length;
@@ -203,7 +184,6 @@ function Ranking({ back, currentUser }) {
     if (myIndex === -1) return null;
 
     const rank = myIndex + 1;
-    // 上位パーセンテージ計算 (1人の場合は上位100%)
     const percentage = totalCount === 1 ? 100 : Math.round((rank / totalCount) * 100);
 
     return { rank, total: totalCount, percentage };
@@ -212,20 +192,20 @@ function Ranking({ back, currentUser }) {
   const dodgeStats = getMyStats("DODGE");
   const judgeStats = getMyStats("JUDGE");
 
-  // メダル色などのスタイル定義
   const getRankStyle = (idx) => {
-    if (idx === 0) return { color: "#ffd700", fontWeight: "bold" }; // 金
-    if (idx === 1) return { color: "#c0c0c0", fontWeight: "bold" }; // 銀
-    if (idx === 2) return { color: "#cd7f32", fontWeight: "bold" }; // 銅
+    if (idx === 0) return { color: "#ffd700", fontWeight: "bold" };
+    if (idx === 1) return { color: "#c0c0c0", fontWeight: "bold" };
+    if (idx === 2) return { color: "#cd7f32", fontWeight: "bold" };
     return { color: "#fff" };
   };
 
   return (
     <div style={bg}>
       <h1 style={title}>RANKING</h1>
-      <button onClick={back} style={{ marginBottom: 15, padding: "10px 24px", borderRadius: 12, background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", fontWeight: "bold" }}>← HOME</button>
+      <div>
+        <button onClick={back} style={{ marginBottom: 15, padding: "10px 24px", borderRadius: 12, background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", fontWeight: "bold" }}>← HOME</button>
+      </div>
       
-      {/* ★ あなたの統計エリア */}
       <div style={{ ...card, borderColor: "#00ff99", background: "linear-gradient(135deg, rgba(0,50,30,0.6), rgba(15,15,25,0.95))" }}>
         <h3 style={{ margin: "0 0 10px 0", color: "#00ff99", fontSize: 16, letterSpacing: 1 }}>YOUR STATS ({currentUser})</h3>
         
@@ -252,7 +232,6 @@ function Ranking({ back, currentUser }) {
         </div>
       </div>
 
-      {/* リーダーボード本体 */}
       <div style={{ ...card, width: 360 }}>
         <h3 style={{ margin: "0 0 15px 0", color: "#4364f7", fontSize: 15 }}>TOP BOARDS</h3>
         {ranking.length === 0 && <div style={{ color: "#666", padding: 20 }}>NO DATA</div>}
@@ -347,7 +326,9 @@ function PrimeDodge({ back, user }) {
   return (
     <div style={bg}>
       <h1 style={title}>PRIME DODGE</h1>
-      <button onClick={back} style={{ padding: "6px 16px", borderRadius: 8, background: "none", color: "#aaa", border: "1px solid #444", cursor: "pointer" }}>← HOME</button>
+      <div>
+        <button onClick={back} style={{ padding: "6px 16px", borderRadius: 8, background: "none", color: "#aaa", border: "1px solid #444", cursor: "pointer" }}>← HOME</button>
+      </div>
       
       <div style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px" }}>
         <div style={{ textAlign: "left" }}><span style={{ color: "#aaa", fontSize: 12 }}>PLAYER</span><br /><b style={{ color: "#00e5ff" }}>{user}</b></div>
@@ -444,7 +425,9 @@ function PrimeJudge({ back, user }) {
   return (
     <div style={bg}>
       <h1 style={title}>PRIME JUDGE</h1>
-      <button onClick={back} style={{ padding: "6px 16px", borderRadius: 8, background: "none", color: "#aaa", border: "1px solid #444", cursor: "pointer" }}>← HOME</button>
+      <div>
+        <button onClick={back} style={{ padding: "6px 16px", borderRadius: 8, background: "none", color: "#aaa", border: "1px solid #444", cursor: "pointer" }}>← HOME</button>
+      </div>
       
       <div style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px" }}>
         <div style={{ textAlign: "left" }}><span style={{ color: "#aaa", fontSize: 12 }}>PLAYER</span><br /><b style={{ color: "#00e5ff" }}>{user}</b></div>
@@ -546,9 +529,10 @@ export default function App() {
             disabled={hasAccount} 
             style={{
               ...inputStyle,
-              backgroundColor: hasAccount ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.5)",
-              color: hasAccount ? "#666" : "#00e5ff",
-              border: hasAccount ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,229,255,0.3)"
+              backgroundColor: hasAccount ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.5)",
+              color: hasAccount ? "#667" : "#00e5ff",
+              border: hasAccount ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,229,255,0.4)",
+              cursor: hasAccount ? "not-allowed" : "text"
             }}
           />
           <input
@@ -556,13 +540,17 @@ export default function App() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="PASSWORD"
-            style={{ ...inputStyle, border: "1px solid rgba(0,229,255,0.3)" }}
+            style={{ 
+              ...inputStyle, 
+              border: "1px solid rgba(0,229,255,0.4)",
+              boxShadow: "0 0 10px rgba(0,229,255,0.1)" 
+            }}
           />
 
           {authMsg && <div style={{ color: "#ff4d4d", marginTop: 12, fontSize: 14, fontWeight: "bold" }}>{authMsg}</div>}
 
-          <button onClick={handleAuth} style={{ ...menuBtn, width: "95%", marginTop: 25, height: 50, padding: 0 }}>
-            {hasAccount ? "ログイン" : "登録してゲームを始める"}
+          <button onClick={handleAuth} style={{ ...menuBtn, width: "90%", marginTop: 25, height: 50, padding: 0 }}>
+            {hasAccount ? "LOG IN" : "SIGN UP & PLAY"}
           </button>
         </div>
       </div>
