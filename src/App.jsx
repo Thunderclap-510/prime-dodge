@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 PRIME DATA
 ========================= */
 const primePool = new Set([
-  11,13,17,19,23,29,31,37,41,43,
+  2,3,5,7,11,13,17,19,23,29,31,37,41,43,
   47,53,59,61,67,71,73,79,83,89,97,
   101,103,107,109,113,127,131,137,139,149,
   151,157,163,167,173,179,181,191,193,197,199,
@@ -26,6 +26,23 @@ const primePool = new Set([
   977,983,991,997
 ]);
 const isPrime = (n) => primePool.has(n);
+
+const factorize = (n) => {
+  const factors = [];
+  let d = 2;
+  while (n > 1) {
+    while (n % d === 0) {
+      factors.push(d);
+      n /= d;
+    }
+    d++;
+    if (d * d > n) {
+      if (n > 1) factors.push(n);
+      break;
+    }
+  }
+  return factors.sort((a, b) => a - b);
+};
 
 /* =========================
 STORAGE & REGISTER SYSTEM
@@ -67,26 +84,25 @@ const addRanking = (name, score, mode) => {
 };
 
 /* =========================
-STYLE & THEME (FIXED UI)
+STYLE & THEME
 ========================= */
 const bg = {
   minHeight: "100vh",
   background: "radial-gradient(circle at top, #121225, #050508)",
   color: "#fff",
   textAlign: "center",
-  paddingTop: 40, // 上部に少し余裕を持たせました
+  paddingTop: 40,
   paddingBottom: 40,
   fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   overflowX: "hidden"
 };
 const title = {
   fontSize: 42,
-  letterSpacing: "8px", // 詰まり気味だった文字間隔を調整
+  letterSpacing: "8px",
   fontWeight: 900,
   background: "linear-gradient(45deg, #00e5ff, #0066ff)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
-  // グラデーション文字が削れないようにpaddingを追加
   padding: "5px 10px", 
   textShadow: "0 0 20px rgba(0,229,255,0.3)",
   margin: "10px 0 30px 0",
@@ -96,7 +112,7 @@ const card = {
   background: "linear-gradient(135deg, rgba(30,30,50,0.9), rgba(15,15,25,0.98))",
   border: "1px solid rgba(0, 229, 255, 0.2)",
   borderRadius: 22,
-  padding: "30px 24px", // 内側の余白を少し広げてゆったりと
+  padding: "30px 24px",
   width: 340,
   margin: "15px auto",
   boxShadow: "0 20px 40px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.1)"
@@ -128,7 +144,7 @@ const menuBtn = {
   color: "#fff",
   cursor: "pointer",
   boxShadow: "0 4px 15px rgba(67, 100, 247, 0.4)",
-  letterSpacing: "2px" // ボタン内の文字間隔も微調整
+  letterSpacing: "2px"
 };
 const inputStyle = {
   width: "90%",
@@ -161,13 +177,22 @@ const getRange = (q) =>
   q < 16 ? { min: 200, max: 499 } : { min: 500, max: 999 };
 
 const calcScore = (time) => Math.round(10000 / (1 + (time / 3)));
-const getRank = (score) => {
-  if (score >= 150000) return "S";
-  if (score >= 120000) return "A";
-  if (score >= 90000) return "B";
-  if (score >= 60000) return "C";
-  return "D";
-};
+
+function generateNumbers(q) {
+  const { min, max } = getRange(q);
+  const used = new Set();
+  const primes = [...primePool].filter((p) => p >= min && p <= max);
+  const arr = [{ value: primes[(Math.random() * primes.length) | 0], id: "p0" }];
+  used.add(arr[0].value);
+  while (arr.length < 9) {
+    const n = ((Math.random() * (max - min + 1)) | 0) + min;
+    if (isPrime(n)) continue;
+    if (used.has(n)) continue;
+    used.add(n);
+    arr.push({ value: n, id: n });
+  }
+  return shuffle(arr);
+}
 
 /* =========================
 RANKING
@@ -191,12 +216,19 @@ function Ranking({ back, currentUser }) {
 
   const dodgeStats = getMyStats("DODGE");
   const judgeStats = getMyStats("JUDGE");
+  const factorStats = getMyStats("FACTOR");
 
   const getRankStyle = (idx) => {
     if (idx === 0) return { color: "#ffd700", fontWeight: "bold" };
     if (idx === 1) return { color: "#c0c0c0", fontWeight: "bold" };
     if (idx === 2) return { color: "#cd7f32", fontWeight: "bold" };
     return { color: "#fff" };
+  };
+
+  const getModeColor = (mode) => {
+    if (mode === "DODGE") return "#ff007f";
+    if (mode === "JUDGE") return "#00ff99";
+    return "#ffd700";
   };
 
   return (
@@ -206,26 +238,36 @@ function Ranking({ back, currentUser }) {
         <button onClick={back} style={{ marginBottom: 15, padding: "10px 24px", borderRadius: 12, background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", fontWeight: "bold" }}>← HOME</button>
       </div>
       
-      <div style={{ ...card, borderColor: "#00ff99", background: "linear-gradient(135deg, rgba(0,50,30,0.6), rgba(15,15,25,0.95))" }}>
+      <div style={{ ...card, borderColor: "#00ff99", background: "linear-gradient(135deg, rgba(0,50,30,0.6), rgba(15,15,25,0.95))", width: 360 }}>
         <h3 style={{ margin: "0 0 10px 0", color: "#00ff99", fontSize: 16, letterSpacing: 1 }}>YOUR STATS ({currentUser})</h3>
         
-        <div style={{ display: "flex", justifyContent: "space-around", fontSize: 13, borderTop: "1px solid rgba(0,255,153,0.2)", paddingTop: 10 }}>
-          <div>
-            <div style={{ color: "#aaa" }}>DODGE</div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, borderTop: "1px solid rgba(0,255,153,0.2)", paddingTop: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#ff007f", fontWeight: "bold" }}>DODGE</div>
             {dodgeStats ? (
               <div style={{ marginTop: 4 }}>
-                <span style={{ fontSize: 18, color: "#00e5ff", fontWeight: "bold" }}>{dodgeStats.rank}</span> / {dodgeStats.total} 位<br />
-                <span style={{ color: "#00ff99" }}>上位 {dodgeStats.percentage}%</span>
+                <b>{dodgeStats.rank}</b>/{dodgeStats.total}位<br />
+                <span style={{ color: "#aaa" }}>上位{dodgeStats.percentage}%</span>
               </div>
             ) : <div style={{ color: "#666", marginTop: 4 }}>NO DATA</div>}
           </div>
           <div style={{ width: 1, backgroundColor: "rgba(0,255,153,0.2)" }}></div>
-          <div>
-            <div style={{ color: "#aaa" }}>JUDGE</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#00ff99", fontWeight: "bold" }}>JUDGE</div>
             {judgeStats ? (
               <div style={{ marginTop: 4 }}>
-                <span style={{ fontSize: 18, color: "#00e5ff", fontWeight: "bold" }}>{judgeStats.rank}</span> / {judgeStats.total} 位<br />
-                <span style={{ color: "#00ff99" }}>上位 {judgeStats.percentage}%</span>
+                <b>{judgeStats.rank}</b>/{judgeStats.total}位<br />
+                <span style={{ color: "#aaa" }}>上位{judgeStats.percentage}%</span>
+              </div>
+            ) : <div style={{ color: "#666", marginTop: 4 }}>NO DATA</div>}
+          </div>
+          <div style={{ width: 1, backgroundColor: "rgba(0,255,153,0.2)" }}></div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#ffd700", fontWeight: "bold" }}>FACTOR</div>
+            {factorStats ? (
+              <div style={{ marginTop: 4 }}>
+                <b>{factorStats.rank}</b>/{factorStats.total}位<br />
+                <span style={{ color: "#aaa" }}>上位{factorStats.percentage}%</span>
               </div>
             ) : <div style={{ color: "#666", marginTop: 4 }}>NO DATA</div>}
           </div>
@@ -260,7 +302,7 @@ function Ranking({ back, currentUser }) {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 15, fontWeight: "bold", color: "#fff" }}>{r.score}</div>
-                  <div style={{ fontSize: 10, color: r.mode === "DODGE" ? "#ff007f" : "#00ff99" }}>{r.mode}</div>
+                  <div style={{ fontSize: 10, color: getModeColor(r.mode), fontWeight: "bold" }}>{r.mode}</div>
                 </div>
               </div>
             );
@@ -350,7 +392,6 @@ function PrimeDodge({ back, user }) {
         <div style={{ ...card, border: "2px solid #ffd700" }}>
           <h2 style={{ color: "#ffd700", margin: "5px 0" }}>GAME OVER</h2>
           <h1 style={{ fontSize: 40, margin: "10px 0", textShadow: "0 0 10px rgba(255,215,0,0.3)" }}>{score}</h1>
-          <div style={{ fontSize: 18, fontWeight: "bold" }}>RANK <span style={{ color: "#00e5ff", fontSize: 24 }}>{getRank(score)}</span></div>
         </div>
       )}
     </div>
@@ -449,7 +490,263 @@ function PrimeJudge({ back, user }) {
         <div style={{ ...card, border: "2px solid #ffd700" }}>
           <h2 style={{ color: "#ffd700", margin: "5px 0" }}>FINISH</h2>
           <h1 style={{ fontSize: 40, margin: "10px 0", textShadow: "0 0 10px rgba(255,215,0,0.3)" }}>{score}</h1>
-          <div style={{ fontSize: 18, fontWeight: "bold" }}>RANK <span style={{ color: "#00e5ff", fontSize: 24 }}>{getRank(score)}</span></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================
+PRIME FACTOR
+========================= */
+function PrimeFactor({ back, user }) {
+  const MAX_Q = 10; 
+  const [currentNum, setCurrentNum] = useState(0);
+  const [targetFactors, setTargetFactors] = useState([]); 
+  const [rawInput, setRawInput] = useState(""); 
+  const [score, setScore] = useState(0);
+  const [q, setQ] = useState(1);
+  const [msg, setMsg] = useState("READY");
+  const [started, setStarted] = useState(false);
+  const [end, setEnd] = useState(false);
+  const [questionStart, setQuestionStart] = useState(0);
+
+  const nextQuestion = () => {
+    let n;
+    let factors = [];
+    while (true) {
+      n = ((Math.random() * 900) | 0) + 100; 
+      factors = factorize(n);
+      if (factors.length > 1) break;
+    }
+    setCurrentNum(n);
+    setTargetFactors(factors);
+    setRawInput("");
+    setQuestionStart(Date.now());
+  };
+
+  const start = () => {
+    setScore(0);
+    setQ(1);
+    setStarted(true);
+    setEnd(false);
+    setMsg("連打して最後のENTERで自動解析！");
+    nextQuestion();
+  };
+
+  const finishGame = (final) => {
+    addRanking(user, final, "FACTOR");
+    setEnd(true);
+    setStarted(false);
+  };
+
+  const pressNum = (num) => {
+    if (!started) return;
+    setRawInput(prev => prev + num);
+  };
+
+  const pressBack = () => {
+    if (!started) return;
+    setRawInput(prev => prev.slice(0, -1));
+  };
+
+  const pressClear = () => {
+    if (!started) return;
+    setRawInput("");
+    setMsg("⌨ CLEARED");
+  };
+
+  const findValidPartition = (s, targetArr) => {
+    const sortedTarget = [...targetArr].sort((a, b) => a - b);
+    
+    const backtrack = (startIdx, currentPartition) => {
+      if (startIdx === s.length) {
+        const sortedCurrent = [...currentPartition].sort((a, b) => a - b);
+        if (sortedCurrent.length === sortedTarget.length &&
+            sortedCurrent.every((v, i) => v === sortedTarget[i])) {
+          return currentPartition; 
+        }
+        return null;
+      }
+
+      for (let endIdx = startIdx + 1; endIdx <= s.length; endIdx++) {
+        const subStr = s.slice(startIdx, endIdx);
+        if (subStr.length > 1 && subStr[0] === '0') continue;
+        
+        const num = parseInt(subStr, 10);
+        
+        const countInTarget = sortedTarget.filter(x => x === num).length;
+        const countInCurrent = currentPartition.filter(x => x === num).length;
+        if (countInTarget === 0 || countInCurrent >= countInTarget) continue;
+
+        currentPartition.push(num);
+        const result = backtrack(endIdx, currentPartition);
+        if (result) return result; 
+        currentPartition.pop();
+      }
+      return null;
+    };
+
+    return backtrack(0, []);
+  };
+
+  const pressEnter = () => {
+    if (!started || rawInput === "") return;
+
+    const matchedPartition = findValidPartition(rawInput, targetFactors);
+
+    if (matchedPartition) {
+      const answerTime = (Date.now() - questionStart) / 1000;
+      const base = calcScore(answerTime) * 1.8; 
+      const nextScore = score + Math.round(base);
+      setScore(nextScore);
+      setMsg(`✔ PERFECT: ${matchedPartition.join(" × ")} (+${Math.round(base)})`);
+
+      const nextQ = q + 1;
+      if (nextQ > MAX_Q) {
+        finishGame(nextScore);
+      } else {
+        setQ(nextQ);
+        nextQuestion();
+      }
+    } else {
+      // 📉 減点幅をマイルドに修正（-400 ➔ -100）
+      setMsg(`✖ INVALID COMBINATION! (${rawInput})`);
+      setScore(prev => Math.max(0, prev - 100));
+    }
+  };
+
+  const pressSkip = () => {
+    if (!started) return;
+    setMsg("⏩ SKIPPED");
+    // 📉 スキップのペナルティをマイルドに修正（-500 ➔ -150）
+    setScore(prev => Math.max(0, prev - 150));
+    
+    const nextQ = q + 1;
+    if (nextQ > MAX_Q) {
+      finishGame(score);
+    } else {
+      setQ(nextQ);
+      nextQuestion();
+    }
+  };
+
+  return (
+    <div style={bg}>
+      <h1 style={{ ...title, background: "linear-gradient(45deg, #ffd700, #ff8800)", textShadow: "0 0 20px rgba(255,215,0,0.3)" }}>PRIME FACTOR</h1>
+      <div>
+        <button onClick={back} style={{ padding: "6px 16px", borderRadius: 8, background: "none", color: "#aaa", border: "1px solid #444", cursor: "pointer" }}>← HOME</button>
+      </div>
+
+      <div style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", borderColor: "#ffd700" }}>
+        <div style={{ textAlign: "left" }}><span style={{ color: "#aaa", fontSize: 12 }}>PLAYER</span><br /><b style={{ color: "#00e5ff" }}>{user}</b></div>
+        <div style={{ textAlign: "center" }}><span style={{ color: "#aaa", fontSize: 12 }}>SCORE</span><br /><b style={{ color: "#ffd700", fontSize: 20 }}>{score}</b></div>
+        <div style={{ textAlign: "right" }}><span style={{ color: "#aaa", fontSize: 12 }}>PROGRESS</span><br /><b>{started ? `${q}/${MAX_Q}` : `-/${MAX_Q}`}</b></div>
+      </div>
+
+      {/* モニターエリア */}
+      <div style={{ 
+        width: 340, 
+        margin: "15px auto", 
+        background: "rgba(0,0,0,0.4)", 
+        borderRadius: 16, 
+        padding: "15px 0",
+        border: "1px solid rgba(255,215,0,0.15)",
+        boxShadow: "inset 0 0 20px rgba(0,0,0,0.6)"
+      }}>
+        {started ? (
+          <>
+            <div style={{ fontSize: 12, color: "#888", letterSpacing: 2 }}>TARGET NUMBER</div>
+            <div style={{ fontSize: 64, fontWeight: 900, color: "#fff", textShadow: "0 0 20px rgba(255,255,255,0.15)", margin: "5px 0" }}>
+              {currentNum}
+            </div>
+            
+            <div style={{ width: "80%", height: 1, backgroundColor: "rgba(255,255,255,0.05)", margin: "15px auto" }}></div>
+
+            <div style={{ fontSize: 12, color: "#aaa" }}>YOUR INPUT</div>
+            <div style={{ 
+              minHeight: 45, 
+              width: "90%", 
+              margin: "8px auto 0 auto",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center"
+            }}>
+              {rawInput ? (
+                <span style={{ 
+                  background: "rgba(0, 229, 255, 0.1)", 
+                  color: "#00e5ff", 
+                  border: "1px solid rgba(0, 229, 255, 0.3)", 
+                  padding: "6px 20px", 
+                  borderRadius: 12, 
+                  fontSize: 24, 
+                  fontWeight: "bold",
+                  letterSpacing: "4px"
+                }}>
+                  {rawInput}
+                </span>
+              ) : (
+                <span style={{ color: "#444", fontSize: 14 }}>因数をただ続けて打ち込む！</span>
+              )}
+            </div>
+          </>
+        ) : (
+          <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center", color: "#666" }}>
+            PRESS START TO DECRYPT
+          </div>
+        )}
+      </div>
+
+      <div style={{ minHeight: 24, margin: "5px 0", color: msg.includes("✔") ? "#00ff99" : msg.includes("✖") ? "#ff4d4d" : "#ffd700", fontWeight: "bold", fontSize: 14 }}>
+        {msg}
+      </div>
+
+      {!started && !end && <button onClick={start} style={{ ...menuBtn, width: 200, marginTop: 10, background: "linear-gradient(90deg, #ff8800, #ffd700)", boxShadow: "0 4px 15px rgba(255,136,0,0.4)" }}>START</button>}
+      
+      {/* テンキーUI */}
+      {started && (
+        <div style={{ width: 340, margin: "5px auto" }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+            {[1, 2, 3].map(n => <button key={n} onClick={() => pressNum(n)} style={{ ...btnBase, flex: 1, background: "rgba(255,255,255,0.04)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }}>{n}</button>)}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+            {[4, 5, 6].map(n => <button key={n} onClick={() => pressNum(n)} style={{ ...btnBase, flex: 1, background: "rgba(255,255,255,0.04)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }}>{n}</button>)}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+            {[7, 8, 9].map(n => <button key={n} onClick={() => pressNum(n)} style={{ ...btnBase, flex: 1, background: "rgba(255,255,255,0.04)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }}>{n}</button>)}
+          </div>
+          
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+            <button onClick={pressClear} style={{ ...btnBase, flex: 1, background: "rgba(255,136,0,0.15)", color: "#ff8800", border: "1px solid rgba(255,136,0,0.3)", fontSize: 14 }}>CLEAR</button>
+            <button onClick={() => pressNum(0)} style={{ ...btnBase, flex: 2, background: "rgba(255,255,255,0.04)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }}>0</button>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginBottom: 15 }}>
+            <button onClick={pressBack} style={{ ...btnBase, width: 90, background: "rgba(255,77,77,0.1)", color: "#ff4d4d", border: "1px solid rgba(255,77,77,0.2)", fontSize: 14 }}>BACK</button>
+            <button onClick={pressEnter} style={{ ...btnBase, flex: 1, background: "linear-gradient(135deg, #00b09b, #96c93d)", color: "#fff", fontSize: 18, fontWeight: "900", boxShadow: "0 4px 10px rgba(0,176,155,0.2)" }}>ENTER</button>
+          </div>
+
+          <button onClick={pressSkip} style={{ 
+            width: "100%", 
+            padding: "12px 0", 
+            borderRadius: 12, 
+            background: "rgba(255,255,255,0.03)", 
+            color: "#aaa", 
+            border: "1px solid rgba(255,255,255,0.1)", 
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: 14,
+            transition: "all 0.2s"
+          }}>
+            ⏩ SKIP THIS NUMBER (-150 PTS)
+          </button>
+        </div>
+      )}
+
+      {end && (
+        <div style={{ ...card, border: "2px solid #ffd700" }}>
+          <h2 style={{ color: "#ffd700", margin: "5px 0" }}>MISSION CLEAR</h2>
+          <h1 style={{ fontSize: 40, margin: "10px 0", textShadow: "0 0 10px rgba(255,215,0,0.3)" }}>{score}</h1>
         </div>
       )}
     </div>
@@ -565,6 +862,10 @@ export default function App() {
     return <PrimeJudge user={getLoggedUser()} back={() => setMode("home")} />;
   }
 
+  if (mode === "factor") {
+    return <PrimeFactor user={getLoggedUser()} back={() => setMode("home")} />;
+  }
+
   if (mode === "ranking") {
     return <Ranking back={() => setMode("home")} currentUser={getLoggedUser()} />;
   }
@@ -583,6 +884,10 @@ export default function App() {
       <div style={{ marginTop: 35, display: "flex", flexDirection: "column", gap: 18, alignItems: "center" }}>
         <button onClick={() => setMode("game")} style={{ ...menuBtn, background: "linear-gradient(90deg, #ff007f, #7928ca)" }}>PRIME DODGE</button>
         <button onClick={() => setMode("judge")} style={{ ...menuBtn, background: "linear-gradient(90deg, #00ea97, #028a57)" }}>PRIME JUDGE</button>
+        <button onClick={() => setMode("factor")} style={{ ...menuBtn, background: "linear-gradient(90deg, #ff8800, #ffd700)", border: "1px solid rgba(255,136,0,0.4)" }}>PRIME FACTOR</button>
+        
+        <div style={{ width: 280, height: 1, backgroundColor: "rgba(255,255,255,0.1)", margin: "5px 0" }}></div>
+        
         <button onClick={() => setMode("ranking")} style={{ ...menuBtn, background: "linear-gradient(90deg, #00b4db, #0083b0)", border: "1px solid rgba(0,229,255,0.4)" }}>RANKING</button>
       </div>
     </div>
